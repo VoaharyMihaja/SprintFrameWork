@@ -43,10 +43,11 @@ public class FrontController extends HttpServlet {
                 if (map!=null) {
                     out.println(map.getMethod().getName()+"--"+map.getControlleClass().getSimpleName());    
 
-                    Object instance = map.getControlleClass().getDeclaredConstructor().newInstance();
-                    Object value = map.getMethod().invoke(instance);
+                    // sprint3
+                    // Object instance = map.getControlleClass().getDeclaredConstructor().newInstance();
+                    // Object value = map.getMethod().invoke(instance);
 
-                    out.println("Valeur methode :" + value.toString());
+                    // out.println("Valeur methode :" + value.toString());
                 }
                 else{
                     out.println("Nothing found!");    
