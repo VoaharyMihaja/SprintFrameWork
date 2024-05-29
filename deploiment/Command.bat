@@ -24,4 +24,4 @@ REM Archiver en .jar
     jar cf Dispatcher.jar -C "%BIN_DIR%" .
 
 REM Copy the .jar file to the lib directory of Project tomcat
-move /Y Dispatcher.jar "..\%TEST_NAME_DIR%\WEB-INF\lib\"
+move /Y Dispatcher.jar "..\%TEST_NAME_DIR%\lib\"
