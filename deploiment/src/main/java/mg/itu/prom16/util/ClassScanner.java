@@ -23,6 +23,7 @@ public class ClassScanner {
             throw new Exception("Package :" + packageName + "nom trouve");
         }
     
+        System.out.println(url.toString());
         File directory = new File(url.toURI());
         File[] files = directory.listFiles();
 
