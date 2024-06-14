@@ -15,6 +15,8 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import mg.itu.prom16.util.ClassScanner;
 import mg.itu.prom16.annotation.Controller;
+import mg.itu.prom16.exception.DuplicateLinkException;
+import mg.itu.prom16.exception.ReturnTypeException;
 import mg.itu.prom16.mapping.Mapping;
 import mg.itu.prom16.modelView.ModelView;
 
@@ -28,6 +30,9 @@ public class FrontController extends HttpServlet {
         super.init();
         try {
             controllerList=ClassScanner.getMapping(getInitParameter("basePackageName"), annClass);
+            
+        } catch (DuplicateLinkException f){
+            throw new Error(f);
         } catch (Exception e) {
             e.printStackTrace();
             throw new ServletException(e);
@@ -58,7 +63,7 @@ public class FrontController extends HttpServlet {
                     // sprint4
                     Object instance = map.getControlleClass().getDeclaredConstructor().newInstance();
                     Object valueFunction = map.getMethod().invoke(instance);
-                    System.out.println(valueFunction);
+                    
 
                     // rehefa modelView le Objet azo amle valueFunction dia avadika Objet ModelVIiew le izy
                     if(valueFunction instanceof ModelView){
@@ -74,12 +79,21 @@ public class FrontController extends HttpServlet {
                         RequestDispatcher dispatcher = request.getRequestDispatcher(nameView);
                         dispatcher.forward(request, response);
                     }
+                    else if (valueFunction instanceof String) {
+                        System.out.println(valueFunction);
+                    }
+                    else{
+                        try {
+                            throw new ReturnTypeException();
+                        } catch (ReturnTypeException e) {
+                            throw new Error(e);
+                        }
+                    }
                 }
+
                 else{
-                    out.println("Nothing found!");    
+                    response.sendError(404); 
                 }
-                
-                
                 out.println("</body></html>");
             }
         } catch (Exception e) {

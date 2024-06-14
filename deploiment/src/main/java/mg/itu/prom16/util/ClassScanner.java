@@ -11,6 +11,8 @@ import java.lang.reflect.Method;
 
 import mg.itu.prom16.mapping.Mapping;
 import mg.itu.prom16.annotation.Get;
+import mg.itu.prom16.exception.DuplicateLinkException;
+import mg.itu.prom16.exception.NotFoundPackageException;
 public class ClassScanner {
 
     public static Map<String,Mapping> getMapping(String packageName,Class<? extends Annotation> annotationClass) throws ClassNotFoundException, IOException, Exception {
@@ -20,7 +22,10 @@ public class ClassScanner {
 
         URL url = Thread.currentThread().getContextClassLoader().getResource(packagePath);
         if (url == null) {
-            throw new Exception("Package :" + packageName + "nom trouve");
+            
+            // throw new Exception("Package :" + packageName + "nom trouve");
+            throw new NotFoundPackageException(packageName);
+
         }
     
         System.out.println(url.toString());
@@ -53,14 +58,18 @@ public class ClassScanner {
         }
         return map;
     }    
-    private static Map<String,Mapping> getMethods(Class<?> clazz) {
+    private static Map<String,Mapping> getMethods(Class<?> clazz) throws DuplicateLinkException{
         
         Map<String,Mapping> methods = new HashMap<String,Mapping>();
         for (Method method : clazz.getDeclaredMethods()) {
             Get an= method.getAnnotation(Get.class);
 
             if(an!=null&& !an.url().isBlank()){
-                methods.put(an.url().trim(),new Mapping(clazz,method));
+                String key = an.url().trim();
+                if (methods.containsKey(key)) {
+                    throw new DuplicateLinkException(key);
+                }
+                methods.put(key,new Mapping(clazz,method));
             }
         }
         return methods;
