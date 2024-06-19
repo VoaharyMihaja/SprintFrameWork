@@ -19,7 +19,7 @@ REM Compile Java classes
 
 REM Supprimer le dossier temporaire apres compilation
     RD /S /Q "%TEMP_JAVA_DIR%"
-    RD /S /Q "%BIN_DIR%"
+    
 
 REM Archiver en .jar
     jar cf Dispatcher.jar -C "%BIN_DIR%" .
