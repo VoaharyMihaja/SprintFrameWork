@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
+
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -18,7 +19,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import mg.itu.prom16.util.ClassScanner;
 import mg.itu.prom16.annotation.Controller;
+
 import mg.itu.prom16.annotation.ObjectParameter;
+
 import mg.itu.prom16.annotation.Param;
 import mg.itu.prom16.exception.DuplicateLinkException;
 import mg.itu.prom16.exception.ReturnTypeException;
@@ -65,8 +68,9 @@ public class FrontController extends HttpServlet {
                     // out.println("Valeur methode :" + value.toString());
                     //--end sprint3
 
-                    // sprint4
+                    // sprint4 + sprint6
                     Object instance = map.getControlleClass().getDeclaredConstructor().newInstance();
+
                     // sprint 6
                     Parameter[] params = map.getMethod().getParameters();
                     HashMap<String,Object> listValueF = new HashMap<>();
@@ -107,6 +111,23 @@ public class FrontController extends HttpServlet {
                         i++;
                     }
                     Object valueFunction = map.getMethod().invoke(instance, listValueParameter);
+
+                    Parameter[] params = map.getMethod().getParameters();
+                    List<Object> listValueF = new ArrayList<>();
+                    for (Parameter param : params) {
+                        String valueF = "";
+                        if (param.getAnnotation(Param.class) != null) {
+                            String annotValue = param.getAnnotation(Param.class).value();
+                            valueF = request.getParameter(annotValue);
+                        }
+                        else{
+                            String nameParam = param.getName();
+                            valueF = request.getParameter(nameParam);
+                        }
+                        listValueF.add(valueF);
+                    }
+                    Object valueFunction = map.getMethod().invoke(instance, listValueF.toArray());
+
 
                     // rehefa modelView le Objet azo amle valueFunction dia avadika Objet ModelVIiew le izy
                     if(valueFunction instanceof ModelView){
