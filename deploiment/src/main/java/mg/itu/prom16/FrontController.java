@@ -3,6 +3,8 @@ package mg.itu.prom16;
 import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
+import java.lang.reflect.Field;
+
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,6 +19,9 @@ import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import mg.itu.prom16.util.ClassScanner;
 import mg.itu.prom16.annotation.Controller;
+
+import mg.itu.prom16.annotation.ObjectParameter;
+
 import mg.itu.prom16.annotation.Param;
 import mg.itu.prom16.exception.DuplicateLinkException;
 import mg.itu.prom16.exception.ReturnTypeException;
@@ -65,6 +70,48 @@ public class FrontController extends HttpServlet {
 
                     // sprint4 + sprint6
                     Object instance = map.getControlleClass().getDeclaredConstructor().newInstance();
+
+                    // sprint 6
+                    Parameter[] params = map.getMethod().getParameters();
+                    HashMap<String,Object> listValueF = new HashMap<>();
+                    Object[] listValueParameter = new Object[params.length];
+                    for (Parameter param : params) {
+                        String nameParam = param.getName();
+                        String valueF = "";
+                        if (param.getAnnotation(Param.class) != null) {
+                            nameParam = param.getAnnotation(Param.class).value();
+                            valueF = request.getParameter(nameParam);
+                        }
+                        else if (param.getAnnotation(ObjectParameter.class) != null) {
+                            Field[] objParamFields = param.getType().getDeclaredFields(); // les attributs d'objet
+                            Field.setAccessible(objParamFields, true);
+                            for (Field field : objParamFields) {
+                                listValueF.put(field.getName(), request.getParameter(field.getName()));
+                            }
+                            continue;
+                        }
+                        listValueF.put(nameParam,valueF);
+                    }
+                    int i = 0;
+                    for (Parameter param : params) {
+                        // sprint 7
+                        if (param.getAnnotation(ObjectParameter.class) != null) {
+                            Object objParam = param.getType().getDeclaredConstructor().newInstance(); // declarer instance de l'objets
+                            Field[] objParamFields = param.getType().getDeclaredFields(); // les attributs d'objet
+                            Field.setAccessible(objParamFields, true);
+                            for (Field field : objParamFields) {
+                                field.set(objParam, listValueF.get(field.getName()));
+                                System.out.println(field.getName());
+                            }
+                            listValueParameter[i] = objParam;
+                        }
+                        else if (param.getAnnotation(Param.class) != null) {
+                            listValueParameter[i] = listValueF.get(param.getAnnotation(Param.class).value());
+                        }
+                        i++;
+                    }
+                    Object valueFunction = map.getMethod().invoke(instance, listValueParameter);
+
                     Parameter[] params = map.getMethod().getParameters();
                     List<Object> listValueF = new ArrayList<>();
                     for (Parameter param : params) {
@@ -80,6 +127,7 @@ public class FrontController extends HttpServlet {
                         listValueF.add(valueF);
                     }
                     Object valueFunction = map.getMethod().invoke(instance, listValueF.toArray());
+
 
                     // rehefa modelView le Objet azo amle valueFunction dia avadika Objet ModelVIiew le izy
                     if(valueFunction instanceof ModelView){
