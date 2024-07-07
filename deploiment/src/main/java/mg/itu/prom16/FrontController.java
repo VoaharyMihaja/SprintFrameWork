@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.PrintWriter;
 import java.lang.annotation.Annotation;
 import java.lang.reflect.Field;
-
 import java.lang.reflect.Parameter;
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -17,16 +16,16 @@ import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServlet;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 import mg.itu.prom16.util.ClassScanner;
 import mg.itu.prom16.annotation.Controller;
-
 import mg.itu.prom16.annotation.ObjectParameter;
-
 import mg.itu.prom16.annotation.Param;
 import mg.itu.prom16.exception.DuplicateLinkException;
 import mg.itu.prom16.exception.ReturnTypeException;
 import mg.itu.prom16.mapping.Mapping;
 import mg.itu.prom16.modelView.ModelView;
+import mg.itu.prom16.session.MySession;
 
 public class FrontController extends HttpServlet {
 
@@ -68,8 +67,20 @@ public class FrontController extends HttpServlet {
                     // out.println("Valeur methode :" + value.toString());
                     //--end sprint3
 
-                    // sprint4 + sprint6
+                    // sprint4
                     Object instance = map.getControlleClass().getDeclaredConstructor().newInstance();
+
+                    // sprint8
+                    Field[] fields = instance.getClass().getDeclaredFields();
+                    for(Field field : fields){
+                        if (field.getType() == MySession.class) {
+                            HttpSession fieldHttpSession = request.getSession();
+                            field.setAccessible(true);
+                            MySession fieldSession = new MySession(fieldHttpSession);
+                            field.set(instance, fieldSession);
+                        }
+                    }
+                    // end sprint8
 
                     // sprint 6
                     Parameter[] params = map.getMethod().getParameters();
@@ -78,8 +89,19 @@ public class FrontController extends HttpServlet {
                     for (Parameter param : params) {
                         String nameParam = param.getName();
                         String valueF = "";
+                        // sprint8
+                        if (param.getType() == MySession.class) {
+                            HttpSession fieldHttpSession = request.getSession();
+                            MySession fieldSession = new MySession(fieldHttpSession);
+                            listValueF.put(nameParam,fieldSession);
+                            System.out.println("param sessi");
+                            continue;
+                        }
+                        // end sprint8
                         if (param.getAnnotation(Param.class) != null) {
-                            nameParam = param.getAnnotation(Param.class).value();
+                            if (!param.getAnnotation(Param.class).value().isEmpty()) {
+                                nameParam = param.getAnnotation(Param.class).value();
+                            }
                             valueF = request.getParameter(nameParam);
                         }
                         else if (param.getAnnotation(ObjectParameter.class) != null) {
@@ -95,6 +117,13 @@ public class FrontController extends HttpServlet {
                     int i = 0;
                     for (Parameter param : params) {
                         // sprint 7
+                        if(param.getAnnotation(ObjectParameter.class) == null && param.getAnnotation(Param.class) == null)
+                        {
+                            System.out.println("sdjfj");
+                            RequestDispatcher req = request.getRequestDispatcher("error.jsp");
+                            req.forward(request, response);
+                            return;
+                        }
                         if (param.getAnnotation(ObjectParameter.class) != null) {
                             Object objParam = param.getType().getDeclaredConstructor().newInstance(); // declarer instance de l'objets
                             Field[] objParamFields = param.getType().getDeclaredFields(); // les attributs d'objet
@@ -106,29 +135,19 @@ public class FrontController extends HttpServlet {
                             listValueParameter[i] = objParam;
                         }
                         else if (param.getAnnotation(Param.class) != null) {
-                            listValueParameter[i] = listValueF.get(param.getAnnotation(Param.class).value());
+                            if (param.getAnnotation(Param.class).value().isEmpty()) {
+                                listValueParameter[i] = listValueF.get(param.getName());
+                                
+                            }
+                            else{
+                                listValueParameter[i] = listValueF.get(param.getAnnotation(Param.class).value());
+                            }
                         }
+
                         i++;
                     }
                     Object valueFunction = map.getMethod().invoke(instance, listValueParameter);
-
-                    Parameter[] params = map.getMethod().getParameters();
-                    List<Object> listValueF = new ArrayList<>();
-                    for (Parameter param : params) {
-                        String valueF = "";
-                        if (param.getAnnotation(Param.class) != null) {
-                            String annotValue = param.getAnnotation(Param.class).value();
-                            valueF = request.getParameter(annotValue);
-                        }
-                        else{
-                            String nameParam = param.getName();
-                            valueF = request.getParameter(nameParam);
-                        }
-                        listValueF.add(valueF);
-                    }
-                    Object valueFunction = map.getMethod().invoke(instance, listValueF.toArray());
-
-
+                    out.println(valueFunction.getClass().getName());
                     // rehefa modelView le Objet azo amle valueFunction dia avadika Objet ModelVIiew le izy
                     if(valueFunction instanceof ModelView){
                         ModelView modelAndView = (ModelView)valueFunction;
