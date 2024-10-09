@@ -22,7 +22,7 @@ REM Supprimer le dossier temporaire apres compilation
     
 
 REM Archiver en .jar
-    jar cf Dispatcher.jar -C "%BIN_DIR%" .
+    jar cf SpringFrameWork.jar -C "%BIN_DIR%" .
 
 REM Copy the .jar file to the lib directory of Project tomcat
-move /Y Dispatcher.jar "..\%TEST_NAME_DIR%\lib\"
+move /Y SpringFrameWork.jar "..\%TEST_NAME_DIR%\lib\"
