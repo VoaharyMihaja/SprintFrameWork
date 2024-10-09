@@ -21,6 +21,9 @@ public class ModelView {
     }
 
     public HashMap<String, Object> getListValue(){
+        if(this.listValue == null){
+            listValue = new HashMap<String, Object>();
+        }
         return listValue;
     }
 

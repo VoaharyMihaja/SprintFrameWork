@@ -21,11 +21,13 @@ import mg.itu.prom16.util.ClassScanner;
 import mg.itu.prom16.annotation.Controller;
 import mg.itu.prom16.annotation.ObjectParameter;
 import mg.itu.prom16.annotation.Param;
+import mg.itu.prom16.annotation.RestApi;
 import mg.itu.prom16.exception.DuplicateLinkException;
 import mg.itu.prom16.exception.ReturnTypeException;
 import mg.itu.prom16.mapping.Mapping;
 import mg.itu.prom16.modelView.ModelView;
 import mg.itu.prom16.session.MySession;
+import mg.itu.prom16.util.JsonParserUtil;
 
 public class FrontController extends HttpServlet {
 
@@ -46,19 +48,33 @@ public class FrontController extends HttpServlet {
         }
     }
 
+    protected void doRestApi(Object valueFunction, HttpServletResponse response) throws Exception {
+        try {
+            if (valueFunction instanceof ModelView) {
+                ModelView modelView = (ModelView) valueFunction;
+                HashMap<String, Object> listKeyAndValue = modelView.getListValue();
+                String dataString = JsonParserUtil.objectToJson(listKeyAndValue);
+                response.getWriter().println(dataString);
+            }
+            else {
+                String dataString = JsonParserUtil.objectToJson(valueFunction);
+                response.getWriter().println(dataString);
+            }
+        } catch (Exception e) {
+            throw new ServletException(e);
+        }
+    }
+
     protected void processRequest(HttpServletRequest request, HttpServletResponse response)
             throws ServletException, IOException {
         
         try {
-            response.setContentType("text/html");
 
             try (PrintWriter out = response.getWriter()) {
-                out.println("<html><body>");
-                out.println("<h1>Servlet Path: " + request.getServletPath() + "</h1>");
                 String path = request.getServletPath().trim();
                 Mapping map = controllerList.get(path);
                 if (map!=null) {
-                    out.println(map.getMethod().getName()+"--"+map.getControlleClass().getSimpleName());    
+                    //out.println(map.getMethod().getName()+"--"+map.getControlleClass().getSimpleName());    
 
                     //--sprint3
                     // Object instance = map.getControlleClass().getDeclaredConstructor().newInstance();
@@ -119,7 +135,6 @@ public class FrontController extends HttpServlet {
                         // sprint 7
                         if(param.getAnnotation(ObjectParameter.class) == null && param.getAnnotation(Param.class) == null)
                         {
-                            System.out.println("sdjfj");
                             RequestDispatcher req = request.getRequestDispatcher("error.jsp");
                             req.forward(request, response);
                             return;
@@ -137,39 +152,48 @@ public class FrontController extends HttpServlet {
                         else if (param.getAnnotation(Param.class) != null) {
                             if (param.getAnnotation(Param.class).value().isEmpty()) {
                                 listValueParameter[i] = listValueF.get(param.getName());
-                                
                             }
                             else{
                                 listValueParameter[i] = listValueF.get(param.getAnnotation(Param.class).value());
                             }
                         }
-
                         i++;
                     }
                     Object valueFunction = map.getMethod().invoke(instance, listValueParameter);
-                    out.println(valueFunction.getClass().getName());
-                    // rehefa modelView le Objet azo amle valueFunction dia avadika Objet ModelVIiew le izy
-                    if(valueFunction instanceof ModelView){
-                        ModelView modelAndView = (ModelView)valueFunction;
-
-                        // j'ai recuperer son nom et ses donnees
-                        String nameView = modelAndView.getNameView();
-                        HashMap<String, Object> listKeyAndValue = modelAndView.getListValue();
-
-                        for (Map.Entry<String, Object> mapp : listKeyAndValue.entrySet()) {
-                            request.setAttribute(mapp.getKey(), mapp.getValue());
-                        }
-                        RequestDispatcher dispatcher = request.getRequestDispatcher(nameView);
-                        dispatcher.forward(request, response);
-                    }
-                    else if (valueFunction instanceof String) {
-                        System.out.println(valueFunction);
+                    // out.println(valueFunction.getClass().getName());
+                    
+                    // sprint 9
+                    if(map.getMethod().isAnnotationPresent(RestApi.class))
+                    {
+                        response.setContentType("text/json");
+                        doRestApi(valueFunction, response);
                     }
                     else{
-                        try {
-                            throw new ReturnTypeException();
-                        } catch (ReturnTypeException e) {
-                            throw new Error(e);
+                    // end sprint 9
+
+                        // rehefa modelView le Objet azo amle valueFunction dia avadika Objet ModelVIiew le izy
+                        if(valueFunction instanceof ModelView){
+                            ModelView modelAndView = (ModelView)valueFunction;
+
+                            // j'ai recuperer son nom et ses donnees
+                            String nameView = modelAndView.getNameView();
+                            HashMap<String, Object> listKeyAndValue = modelAndView.getListValue();
+
+                            for (Map.Entry<String, Object> mapp : listKeyAndValue.entrySet()) {
+                                request.setAttribute(mapp.getKey(), mapp.getValue());
+                            }
+                            RequestDispatcher dispatcher = request.getRequestDispatcher(nameView);
+                            dispatcher.forward(request, response);
+                        }
+                        else if (valueFunction instanceof String) {
+                            System.out.println(valueFunction);
+                        }
+                        else{
+                            try {
+                                throw new ReturnTypeException();
+                            } catch (ReturnTypeException e) {
+                                throw new Error(e);
+                            }
                         }
                     }
                 }
@@ -177,7 +201,6 @@ public class FrontController extends HttpServlet {
                 else{
                     response.sendError(404); 
                 }
-                out.println("</body></html>");
             }
         } catch (Exception e) {
             throw new ServletException(e);    
